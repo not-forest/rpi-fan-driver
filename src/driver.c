@@ -23,7 +23,6 @@ static struct class *dev_class;
 static struct cdev rpfan_gpio_cdev;
 static union fan_config config;
 
-char kbuf[KBUF_SIZE];
 dev_t dev = 0;
 /****************************************************/
 
@@ -49,7 +48,9 @@ static int rpfan_release(struct inode *inode, struct file *file) {
 
 /* Providing the current configuration. */
 static ssize_t rpfan_read(struct file *file, char __user *buf, size_t len, loff_t *off) {
-    if(copy_to_user(buf, &kbuf, KBUF_SIZE)) { 
+    char kbuf[KBUF_SIZE];
+    len = snprintf(kbuf, KBUF_SIZE, "%u", config.bytes);
+    if(copy_to_user(buf, &kbuf, len)) { 
         pr_err("%s: Failed to provide config data to the user.\n", THIS_MODULE->name);
         return -EIO;
     }
@@ -66,17 +67,10 @@ static ssize_t rpfan_write(struct file *file, const char *buf, size_t len, loff_
         pr_err("Invalid data size\n");
         return -EINVAL;
     }
-
-    // Receive new config from user space.
-    if(copy_from_user(&kbuf, buf, len)) {
-        pr_err("%s: Failed to recieve configuration from the user.\n", THIS_MODULE->name);
-        return -EIO;
-    }
    
     // Converting to u8.
-    if(kstrtou8(kbuf, 10, &config.bytes)) {
-        pr_err("%s: ERROR: Unconvertable u8 value: %s", THIS_MODULE->name, kbuf);
-        sprintf(kbuf, "%d", config.bytes); 
+    if(kstrtou8_from_user(buf, len, 10, &config.bytes)) {
+        pr_err("%s: ERROR: Unconvertable u8 value: %s", THIS_MODULE->name, buf);
         return -EINVAL;
     }
 
@@ -118,29 +112,7 @@ static int __init rpfan_driver_init(void) {
     }
 
     // If everything is ok, trying to obtain one of the first available pins.
-    uint8_t gpio = GPIO_MIN;
-    for(; gpio < GPIO_AMOUNT; ++gpio) {
-        if(gpio_is_valid(gpio)) { 
-            // When a valid GPIO is found, requesting it.
-            if(gpio_request(gpio, GPIO_NAME) < 0) {
-                pr_err("%s: ERROR: GPIO_%d request failed...\n", THIS_MODULE->name, gpio);
-                gpio_free(gpio);
-            } else break;
-        }
-    }
-
-    // This check is true if all GPIO requests would fail or all GPIOs are not valid.
-    if(gpio == GPIO_AMOUNT) {
-        pr_err("%s: Requests failed. All pins are in use, aborting..\n", THIS_MODULE->name);
-        goto _dev;
-    }   
-
-    gpio_direction_output(gpio, OUT);
-    gpio_set_value(gpio, HIGH);
-
-    config.gpio_num = gpio;
-    config.pwm_mode = PWM_OFF;
-    sprintf(kbuf, "%d", config.bytes); 
+    if(init_gpio(&config) < 0) goto _dev; 
 
     pr_info("%s: Fan driver properly initialized for pin: GPIO_%d.\n", THIS_MODULE->name, config.gpio_num);
     return 0;
