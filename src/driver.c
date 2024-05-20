@@ -14,7 +14,6 @@
 #include<linux/gpio.h>
 #include<linux/kdev_t.h>
 #include<linux/init.h>
-#include<linux/pwm.h>
 
 #include"rpi.h"
 
@@ -22,10 +21,6 @@
 static struct class *dev_class;
 static struct cdev rpfan_gpio_cdev;
 static union fan_config config;
-
-dev_t dev = 0;
-/****************************************************/
-
 static struct file_operations fops = {
     .owner          = THIS_MODULE,
     .read           = rpfan_read,
@@ -33,6 +28,9 @@ static struct file_operations fops = {
     .open           = rpfan_open,
     .release        = rpfan_release,
 };
+
+dev_t dev = 0;
+/****************************************************/
 
 /* Character device open. */
 static int rpfan_open(struct inode *inode, struct file *file) {
@@ -115,6 +113,11 @@ static int __init rpfan_driver_init(void) {
     if(init_gpio(&config) < 0) goto _dev; 
 
     pr_info("%s: Fan driver properly initialized for pin: GPIO_%d.\n", THIS_MODULE->name, config.gpio_num);
+
+    // Trying to obtain the PWM on initialization.
+    if(init_fan_pwm() < 0) 
+        pr_info("%s: The PWM support will be disabled.", THIS_MODULE->name); 
+    
     return 0;
 
 _dev:
@@ -133,6 +136,8 @@ _unreg:
 static void __exit rpfan_driver_exit(void) {
     gpio_set_value_cansleep(config.gpio_num, LOW);
     gpio_free(config.gpio_num);
+    free_fan_pwm();
+
     device_destroy(dev_class, dev);
     class_destroy(dev_class);
     cdev_del(&rpfan_gpio_cdev);
@@ -146,4 +151,4 @@ module_exit(rpfan_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("notforest <sshkliaiev@gmail.com>");
 MODULE_DESCRIPTION("Driver for optimizing raspberry pi's fan and configurating it from the user space.");
-MODULE_VERSION("0.1.alpha");
+MODULE_VERSION("0.2.alpha");
