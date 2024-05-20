@@ -1,16 +1,13 @@
 /* 
  *  file: gpio.c
  *
- *  Module for parsing GPIO requests and PWM management.
+ *  Module for parsing GPIO requests.
  *
  *  Tested with Linux raspberry pi 4, kernel built with buildroot: 6.1.61-v8
  * */
 
-#include<linux/kernel.h>
 #include<linux/module.h>
-#include<linux/fs.h>
 #include<linux/gpio.h>
-#include<linux/pwm.h>
 #include"rpi.h"
 
 /* sets the new GPIO while parsing values and returning obtained errors */
@@ -26,7 +23,7 @@ int set_gpio(union fan_config *config, uint8_t old_gpio) {
             pr_err("%s: ERROR: GPIO_%d is not a proper pin, ignoring...\n", THIS_MODULE->name, new_gpio);
             return -EFAULT;
         case PWM_GPIOS:
-            // TODO!
+            set_fan_pwm(config); 
             break;
         default:
             pr_warn("%s: WARN: GPIO_%d is not a PWM pin. PWM configuration will be ignored.\n", 
