@@ -1,0 +1,41 @@
+/*  Additional overlay for raspberry pi pwm devices. This dt overlay is compatible with bcm2711 (Raspberry Pi 4). */
+
+/dts-v1/;
+/plugin/;
+/ {
+    compatible = "brcm,bcm2711";
+
+    /*  
+        This fragment declares a new fan device, which can be attached to one of control pins. 
+        
+        It is our additional 'hardware' device, which describes the raspberry pi fan attached to one of the
+        pwm pins.
+    */
+    fragment@0 {
+        target = <&soc>;
+        __overlay__ {
+            // PWM0 handles GPIO12, GPIO13, GPIO18 and GPIO19.
+            rpifan {
+                compatible = "rpifan_pwm";
+
+                pwm-names = "pwm-fan";
+                pwms = <&pwm 0 1000000>;
+
+                pinctrl-names = "even", "odd";
+                pinctrl-0 = <&pwm0_0_gpio12>, <&pwm0_0_gpio18>;
+                pinctrl-1 = <&pwm0_1_gpio13>, <&pwm0_1_gpio19>;
+
+                label = "rpifan";      // Driver expects the same label as provided during compile time.
+                status = "okay";
+            };    
+        };
+    };
+
+    /* This fragment is used only to set real PWM0 as enabled. */
+    fragment@1 {
+        target = <&pwm>;
+        __overlay__ {
+            status = "okay";    // Overriding the disabled status.
+        };
+    };
+};
