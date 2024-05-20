@@ -1,5 +1,5 @@
 /*
- *  Header file for rpi-4-fan driver.
+ *  Header file for rpifan driver.
  * */
 
 #ifndef __RPI4F__
@@ -63,6 +63,13 @@ static ssize_t rpfan_write(struct file *file, const char *buf, size_t len, loff_
 int set_gpio(union fan_config *config, uint8_t old_gpio);
 /* Initializes the first available GPIO in the system. */
 int init_gpio(union fan_config *config);
+
+/* Sets a new PWM to a certain GPIO based on the fan configuration */
+int set_fan_pwm(union fan_config *config);
+/* Initializes the PWM lookup table */
+int init_fan_pwm(void);
+/* Frees the PWM device. */
+void free_fan_pwm(void);
 /****************************************************/
 
 #endif
