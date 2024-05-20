@@ -6,6 +6,8 @@ This kernel module is in the early stages of development and is designed to opti
 
 - [x] Basic GPIO init pin configuration.
 - [x] Configure fan operation through user-space.
+- [x] Both legacy and new way to obtain PWM device is supported.
+- [x] Fan device-tree overlay.
 - [ ] Control fan speed using PWM.
 - [ ] Multiple PWM modes.
 
@@ -22,8 +24,26 @@ Ensure you have the necessary cross-compilation tools and kernel headers install
 
 Clone the repository and use the following commands in the root directory of the source:
 
+**Export the required environment variables:**
+
 ```bash
-make ARCH=<your-arch> COMPILER=<your-compiler-prefix> KVER=<your-kernel-version>
+export ARCH=<your-arch>
+export COMPILER=<your-compiler-prefix>
+export KVER=<your-kernel-version>
+make
+```
+
+For kernel versions smaller than 4.5.0, `PWM_INDEX` can be provided to chose the required PWM channel. By default this value is set to zero.
+
+```bash
+export PWM_INDEX=<index>
+```
+
+For newer kernels an additional device tree overlay is required. `DTO_OVERLAY` variable must be provided as a name of the .dtso file located in `dt_overlays/` directory. Some default presets for different boards might appear sooner.
+
+```bash
+export DTO_OVERLAY=<bcmXXXX-my_custom_overlay>
+make dto
 ```
 
 ### Setting up
@@ -51,6 +71,6 @@ Here is a more detailed structure of the expected value:
 |--------------|------------|-----------------------------------------------------------------------------------------------|
 | 7 - 5        | PWM Mode   | Represents the PWM mode for fan control.                                                      |
 |              |            | `0b000`: Adaptive PWM mode (Dynamically adjusts based on CPU load)                            |
-|              |            | `0b111`: PWM_OFF (Fan turned off)                                                             |
+|              |            | `0b111`: PWM_OFF (no PWM just static 3.3V)                                                    |
 |              |            | Values `0b001` to `0b110`: Static PWM values calculated in percentages.                       |
 
