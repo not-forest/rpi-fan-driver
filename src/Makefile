@@ -36,8 +36,8 @@ KDIR := /lib/modules/$(KVER)/build/
 all:
 	make -C $(KDIR) M=$(CURDIR) ARCH=$(ARCH) CROSS_COMPILE=$(COMPILER) modules
 
-dto: 
-	dtc -@ -I dts -O dtb -o $(DTO_OVERLAY_O) $(DTO_OVERLAY_S)
+dto:
+	gcc -xc -E $(DTO_OVERLAY_S) | dtc -@ -I dts -O dtb -o $(DTO_OVERLAY_O)
 
 clean:
 	make -C $(KDIR) M=$(CURDIR) clean
