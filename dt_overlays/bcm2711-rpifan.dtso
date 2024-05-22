@@ -1,5 +1,9 @@
 /*  Additional overlay for raspberry pi pwm devices. This dt overlay is compatible with bcm2711 (Raspberry Pi 4). */
 
+#ifndef DEV_LABEL
+#define DEV_LABEL "rpifan"
+#endif
+
 /dts-v1/;
 /plugin/;
 / {
@@ -18,14 +22,13 @@
             rpifan {
                 compatible = "rpifan_pwm";
 
-                pwm-names = "pwm-fan";
                 pwms = <&pwm 0 1000000>;
 
                 pinctrl-names = "even", "odd";
                 pinctrl-0 = <&pwm0_0_gpio12>, <&pwm0_0_gpio18>;
                 pinctrl-1 = <&pwm0_1_gpio13>, <&pwm0_1_gpio19>;
 
-                label = "rpifan";      // Driver expects the same label as provided during compile time.
+                label = DEV_LABEL;      // Driver expects the same label as provided during compile time.
                 status = "okay";
             };    
         };
