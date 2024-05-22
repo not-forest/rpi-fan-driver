@@ -28,7 +28,6 @@
 // Adaptive PWM. The value is defined based on the CPU load. 
 #define PWM_ADP 0b000
 
-/***** Module related defines *****/
 #define DEVICE_NAME "rpifan"
 #define CLASS_NAME "fan"
 #define GPIO_NAME "FAN_GPIO"
