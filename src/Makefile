@@ -37,7 +37,7 @@ all:
 	make -C $(KDIR) M=$(CURDIR) ARCH=$(ARCH) CROSS_COMPILE=$(COMPILER) modules
 
 dto:
-	gcc -xc -E $(DTO_OVERLAY_S) | dtc -@ -I dts -O dtb -o $(DTO_OVERLAY_O)
+	gcc -xc -P -E $(DTO_OVERLAY_S) | dtc -@ -I dts -O dtb -o $(DTO_OVERLAY_O)
 
 clean:
 	make -C $(KDIR) M=$(CURDIR) clean
