@@ -17,9 +17,25 @@
 
 #include "rpi.h"
 
+#define PWM_PERIOD 50000000
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
 #define LEGACY  // Using legacy 'pwm_request' for older kernels.
 #endif
+
+/**************** Driver data fields ****************/
+static struct pwm_state pwm_s = {
+    .period = PWM_PERIOD,
+    .duty_cycle = PWM_PERIOD,
+    .polarity = PWM_POLARITY_NORMAL,
+    .enabled = true,
+};
+
+// Obtained pointer to the PWM device.
+static struct pwm_device *pwm ;
+/****************************************************/
+
+#ifndef LEGACY
 
 /******** Must be configured per overlay ********/
 #ifndef DEV_LABEL           // PWM label within the device-tree overlay.
@@ -27,7 +43,6 @@
 #endif
 /************************************************/
 
-#ifndef LEGACY
 
 #define PLATFORM_DRIVER_NAME "rpifan_pwm"
 #define DT_DEV_COMP PLATFORM_DRIVER_NAME
@@ -40,7 +55,7 @@ static int rpi_fan_pwm_remove(struct platform_device *pdev);
 
 /**************** Driver data fields ****************/
 // Device tree match table.
-static struct of_device_id rpi_pwm_ids[] = {
+static struct of_device_id rpifan_ids[] = {
     {
         .compatible = DT_DEV_COMP,
     }, 
@@ -48,21 +63,18 @@ static struct of_device_id rpi_pwm_ids[] = {
 };
 
 // Platform driver for requesting the PWM.
-static struct platform_driver rpi_pwm_driver = {
+static struct platform_driver rpi_platform_driver = {
     .probe = rpi_fan_pwm_probe,
     .remove = rpi_fan_pwm_remove,
     .driver = {
         .name = PLATFORM_DRIVER_NAME,
         .owner = THIS_MODULE,
-        .of_match_table = rpi_pwm_ids,
+        .of_match_table = rpifan_ids,
     },
 };
-
-// Obtained pointer to the PWM device.
-static struct pwm_device *pwm ;
 /****************************************************/
 
-MODULE_DEVICE_TABLE(of, rpi_pwm_ids);
+MODULE_DEVICE_TABLE(of, rpifan_ids);
 
 /* Requests the PWM when probed. */
 static int rpi_fan_pwm_probe(struct platform_device *pdev) {
@@ -81,12 +93,15 @@ static int rpi_fan_pwm_probe(struct platform_device *pdev) {
         return -ENODEV;
     }
 
-    pwm = pwm_get(dev, NULL);       // pwm0 does not have a label. Will get found from the pwms field.
+    // Using NULL since our device has only one pwm phandle. For custom configs, pwm-names property
+    // must be provided.
+    pwm = pwm_get(dev, NULL);
 
     if(IS_ERR(pwm)) {
-        int err = ERR_CAST(pwm);
-        pr_err("%s: ERROR: Requesting PWM failed: %d", PLATFORM_DRIVER_NAME, err);
-        return err;
+        if(PTR_ERR(pwm) != -EPROBE_DEFER) {
+            pr_err("%s: ERROR: Requesting PWM failed: %d", PLATFORM_DRIVER_NAME, ERR_CAST(pwm));
+            return ERR_PTR(pwm);
+        }
     }
 
     return 0;
@@ -108,18 +123,25 @@ static int rpi_fan_pwm_remove(struct platform_device *pdev) {
 
 /* Sets a new PWM to a certain GPIO based on the fan configuration */
 int set_fan_pwm(union fan_config *config) {
-    //TODO!
-
+    // Check for an adaptive PWM configuration.
+    if(config->gpio_num == PWM_ADP) {
+        goto _pwms_ok;
+    }
+    
+    pwm_s.duty_cycle = (PWM_PERIOD / PWM_OFF) * config->pwm_mode;
+    pwm_apply_state(pwm, &pwm_s);
+_pwms_ok:
+    pr_info("%s: PWM configuration changed successfully.", THIS_MODULE->name);
     return 0;
 }
 
 /* Obtains the PWM device. */
 int init_fan_pwm(void) {
 #ifndef LEGACY
-    if(platform_driver_register(&rpi_pwm_driver)) {
+    if(platform_driver_register(&rpi_platform_driver)) {
         pr_err("%s: ERROR: Unable to load platform driver.", THIS_MODULE->name);
         pwm = NULL;
-        return -EIO;
+        return -EPROBE_DEFER;
     }
 #else
     pwm = pwm_request(PWM_INDEX, PWM_LABEL);
@@ -129,6 +151,7 @@ int init_fan_pwm(void) {
         return -EIO; 
     }
 #endif    
+    pwm_apply_state(pwm, &pwm_s);
 
     return 0;
 }
@@ -136,7 +159,7 @@ int init_fan_pwm(void) {
 /* Frees the PWM device. */
 void free_fan_pwm(void) {    
 #ifndef LEGACY
-    platform_driver_unregister(&rpi_pwm_driver);    // Platform driver destructor handles the freeing.
+    platform_driver_unregister(&rpi_platform_driver);    // Platform driver destructor handles the freeing.
 #else    
     pwm_free(pwm);                                  // Legacy freeing.
 #endif    
