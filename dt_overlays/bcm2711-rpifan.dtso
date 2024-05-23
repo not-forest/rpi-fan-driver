@@ -1,8 +1,38 @@
-/*  Additional overlay for raspberry pi pwm devices. This dt overlay is compatible with bcm2711 (Raspberry Pi 4). */
+/*  
+    Additional overlay for raspberry pi pwm devices. This dt overlay is compatible with bcm2711 (Raspberry Pi 4). 
 
-#ifndef DEV_LABEL
-#define DEV_LABEL "rpifan"
+    This overlay initializes the fan device as well as acts as a "pwm-2chan" alternative overlay for blank kernels. This 
+    overlay may act as a 1-channel and 2-channel overlay based on the parameters. The overlay is assumed for bcm2835's 
+    PWM0, which is used primarly for GPIO pins. This config can be tweaked for PWM1, hovewer it only handles GPIO40 and 
+    GPIO41, which are not part of the main GPIO header.
+
+    Legal pins and their function combinations for each channel (May differ on other broadcom boards):
+    
+        ## PWM0 channel 0/1 Combinations
+
+        | **PWM0_0 GPIO Pin** | **PWM0_0 Function (Alt)** | **PWM0_1 GPIO Pin** | **PWM0_1 Function (Alt)** |
+        |---------------------|---------------------------|---------------------|---------------------------|
+        | 18                  | 2 (Alt5)                  | 19                  | 2 (Alt5)                  |
+        | 12                  | 4 (Alt0)                  | 13                  | 4 (Alt0)                  |
+        | --                  | --                        | 45                  | 4 (Alt0)                  |
+        | 52                  | 5 (Alt1)                  | 53                  | 5 (Alt1)                  |
+        
+        ## PWM1 channel 0/1 Combinations.
+        
+        | **PWM1_0 GPIO Pin** | **PWM1_0 Function (Alt)** | **PWM1_1 GPIO Pin** | **PWM1_1 Function (Alt)** |
+        |---------------------|---------------------------|---------------------|---------------------------|
+        | 40                  | 4 (Alt0)                  | 41                  | 4 (Alt0)                  |
+    
+    All defines are located in the file bottom.
+*/
+
+// Fan device label.
+#ifndef LABEL
+#define LABEL "rpifan"
 #endif
+
+// PWM has two possible channels, therefore only up to two GPIO pins might be used.
+#if defined(PINS) && defined(FUNCS)
 
 /dts-v1/;
 /plugin/;
@@ -11,34 +41,55 @@
 
     /*  
         This fragment declares a new fan device, which can be attached to one of control pins. 
-        
+
         It is our additional 'hardware' device, which describes the raspberry pi fan attached to one of the
         pwm pins.
     */
     fragment@0 {
         target = <&soc>;
         __overlay__ {
-            // PWM0 handles GPIO12, GPIO13, GPIO18 and GPIO19.
             rpifan {
                 compatible = "rpifan_pwm";
+                pwm-names = "ch0", "ch1";                           // Two channels for one PWM chip.
+                pwms = <&pwm 0 1000000>, <&pwm 1 1000000>;
+                //pwms = <&pwm1 0 1000000>, <&pwm1 1 1000000>;      // This line must be used for PWM1. 
 
-                pwms = <&pwm 0 1000000>;
-
-                pinctrl-names = "even", "odd";
-                pinctrl-0 = <&pwm0_0_gpio12>, <&pwm0_0_gpio18>;
-                pinctrl-1 = <&pwm0_1_gpio13>, <&pwm0_1_gpio19>;
-
-                label = DEV_LABEL;      // Driver expects the same label as provided during compile time.
+                label = LABEL;      // Driver expects the same label as provided during compile time.
                 status = "okay";
             };    
         };
     };
 
-    /* This fragment is used only to set real PWM0 as enabled. */
+    /* Pin multiplexing for PWM channels */
     fragment@1 {
+        target = <&gpio>;
+        __overlay__ {
+            pwm_pins: pwm_pins {
+                brcm,pins = <PINS>;
+                brcm,function = <FUNCS>;
+            };
+        };
+    };
+
+    /* This fragment is used only to set real PWM0 as enabled. */
+    fragment@2 {
         target = <&pwm>;
         __overlay__ {
+            pinctrl-names = "default";
+            pinctrl-0 = <&pwm_pins>;
             status = "okay";    // Overriding the disabled status.
         };
     };
+
+    /* Allows for runtime overrides for pin multiplexing. */
+    __overrides__ {
+		pin   = <&pwm_pins>,"brcm,pins:0";
+		pin2  = <&pwm_pins>,"brcm,pins:4";
+		func  = <&pwm_pins>,"brcm,function:0";
+		func2 = <&pwm_pins>,"brcm,function:4";
+	};
 };
+
+#else
+#error "Unsupported GPIO configuration for PWM_GPIOS"
+#endif
