@@ -114,9 +114,9 @@ static int __init rpfan_driver_init(void) {
 
     pr_info("%s: Fan driver properly initialized for pin: GPIO_%d.\n", THIS_MODULE->name, config.gpio_num);
 
-    // Trying to obtain the PWM on initialization.
+    // Trying to obtain the PWM on initialization. Requires the pwm driver to be probed.
     if(init_fan_pwm() < 0) 
-        pr_info("%s: The PWM support will be disabled.", THIS_MODULE->name); 
+        pr_err("%s: ERROR: Unable to request the PWM driver. Please check that \"pwm-bcm2835\" driver exists.", THIS_MODULE->name);
     
     return 0;
 
@@ -151,4 +151,4 @@ module_exit(rpfan_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("notforest <sshkliaiev@gmail.com>");
 MODULE_DESCRIPTION("Driver for optimizing raspberry pi's fan and configurating it from the user space.");
-MODULE_VERSION("0.2.alpha");
+MODULE_VERSION("0.3.pre-beta");
