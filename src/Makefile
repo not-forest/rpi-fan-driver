@@ -19,11 +19,18 @@ DTO_OVERLAY_O := ${DTO_OVERLAY_S:.dtso=.dtbo}
 
 # A label of out fan device. This one must match with the chosen one from the dts overlay.
 DEV_LABEL ?= rpifan
-# WARN: Kernel <4.5.0 users only. Uses old legacy pwm api. Ignored on newer kernels.
-PWM_INDEX ?= 0
 
-CFLAGS += -DDEV_LABEL
-CFLAGS += -DPWM_INDEX
+### PWM_GPIOS and PWM_FUNCS must be defined with. Please export those symbols written in "". Those are required for
+### PWM to work properly and must be either applied dynamically or added to the device tree via bootloader commands or
+### recompiling the kernel manually.
+
+# Up to two gpios must be chosen. For list of compatible pins and their function see README or the preview overlay.
+PWM_PINS ?= "12 13"
+# GPIO function keys. For list of compatible pins and their function see README or the preview overlay.
+PWM_FUNCS ?= "4 4"
+
+CFLAGS += -DDEV_LABEL -DPWM_GPIOS -DPWM_PINS -DPWM_FUNCS
+DTOFLAGS += -DPINS=$(PWM_PINS) -DFUNCS=$(PWM_FUNCS) -DLABEL=\"$(DEV_LABEL)\"
 
 # Makefile for driver compilation
 obj-m += rpifan.o
@@ -37,7 +44,7 @@ all:
 	make -C $(KDIR) M=$(CURDIR) ARCH=$(ARCH) CROSS_COMPILE=$(COMPILER) modules
 
 dto:
-	gcc -xc -P -E $(DTO_OVERLAY_S) | dtc -@ -I dts -O dtb -o $(DTO_OVERLAY_O)
+	gcc -xc -E -P $(DTOFLAGS) $(DTO_OVERLAY_S) | dtc -@ -I dts -O dtb -o $(DTO_OVERLAY_O)
 
 clean:
 	make -C $(KDIR) M=$(CURDIR) clean
