@@ -38,7 +38,7 @@ rpifan-objs += driver.o gpio.o pwm.o
 
 # Kernel headers version. Can be adjusted when calling.
 KVER ?= 6.1.61-v8
-KDIR := /lib/modules/$(KVER)/build/
+KDIR ?= /lib/modules/$(KVER)/build/
 
 all:
 	make -C $(KDIR) M=$(CURDIR) ARCH=$(ARCH) CROSS_COMPILE=$(COMPILER) modules
