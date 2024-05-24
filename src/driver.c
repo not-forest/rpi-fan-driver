@@ -10,6 +10,7 @@
 #include<linux/kdev_t.h>
 #include<linux/cdev.h>
 #include<linux/module.h>
+
 #include<linux/fs.h>
 #include<linux/gpio.h>
 #include<linux/kdev_t.h>
@@ -116,7 +117,7 @@ static int __init rpfan_driver_init(void) {
 
     // Trying to obtain the PWM on initialization. Requires the pwm driver to be probed.
     if(init_fan_pwm() < 0) 
-        pr_err("%s: ERROR: Unable to request the PWM driver. Please check that \"pwm-bcm2835\" driver exists.", THIS_MODULE->name);
+        pr_warn("%s: WARN: PWM support may be disabled for now.", THIS_MODULE->name);
     
     return 0;
 
@@ -151,4 +152,4 @@ module_exit(rpfan_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("notforest <sshkliaiev@gmail.com>");
 MODULE_DESCRIPTION("Driver for optimizing raspberry pi's fan and configurating it from the user space.");
-MODULE_VERSION("0.3.pre-beta");
+MODULE_VERSION("0.4.pre-beta");
