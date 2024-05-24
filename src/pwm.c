@@ -8,13 +8,15 @@
  *  Tested with Linux raspberry pi 4, kernel built with buildroot: 6.1.61-v8
  * */
 
-#include<linux/mod_devicetable.h>
-#include<linux/property.h>
-#include<linux/of_device.h>
 #include<linux/version.h>
 #include<linux/module.h>
 #include<linux/kernel.h>
+
+#include<linux/mod_devicetable.h>
+#include<linux/property.h>
+#include<linux/of_device.h>
 #include<linux/pwm.h>
+
 
 #include "rpi.h"
 
@@ -150,7 +152,7 @@ int set_fan_pwm(union fan_config *config) {
     FOR_EACH_CHANNEL(i, 
         if(config->gpio_num == __GET_PWM_VAL(i, PWM_PINS)) {
             // The PWM was not initialized. Maybe the pwm-bcm2835 is not probed.
-            if(pwms[i] == NULL) {
+            if(try_then_request_module(pwms[i], "pwm-bcm2835") < 0) {
                 pr_warn("%s: WARN: PWM channel %d is not initialized. Make sure the pwm-bcm2835 driver is probed", THIS_MODULE->name, i); 
                 return -ENXIO;
             }
@@ -177,11 +179,12 @@ _pwms_ok:
 
 /* Obtains the PWM device. */
 int init_fan_pwm(void) {
-#ifndef LEGACY
+    // We require the pwm driver to be available for obtaining the PWM channels.
     if(request_module("pwm-bcm2835")) {
-
+        pr_err("%s: ERROR: Unable to request the PWM driver. Please check that \"pwm-bcm2835\" driver exists.", THIS_MODULE->name);
+        return -ENXIO;
     }
-
+#ifndef LEGACY
     if(platform_driver_register(&rpi_platform_driver)) {
         pr_err("%s: ERROR: Unable to load platform driver.", THIS_MODULE->name);
         return -EPROBE_DEFER;
