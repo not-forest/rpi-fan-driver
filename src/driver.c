@@ -46,16 +46,19 @@ static int rpfan_release(struct inode *inode, struct file *file) {
 }
 
 /* Providing the current configuration. */
-static ssize_t rpfan_read(struct file *file, char __user *buf, size_t len, loff_t *off) {
+static ssize_t rpfan_read(struct file *file, char __user *buf, size_t size, loff_t *off) {
     char kbuf[KBUF_SIZE];
-    len = snprintf(kbuf, KBUF_SIZE, "%u", config.bytes);
-    if(copy_to_user(buf, &kbuf, len)) { 
-        pr_err("%s: Failed to provide config data to the user.\n", THIS_MODULE->name);
-        return -EIO;
-    }
-    pr_info("%s: Data read succesfully: %s\n", THIS_MODULE->name, kbuf);
+    snprintf(kbuf, KBUF_SIZE, "%u", config.bytes);
+    ssize_t len = min(KBUF_SIZE - *off, size);
 
-    return 0;
+    if(copy_to_user(buf, &kbuf + *off, len)) { 
+        pr_err("%s: Failed to provide config data to the user.\n", THIS_MODULE->name);
+        return -EFAULT;
+    }
+    pr_debug("%s: Data read succesfully: %s\n", THIS_MODULE->name, kbuf);
+   
+    *off += len;
+    return len;
 }
 
 /* Writing new configuration to the character device. */
@@ -152,4 +155,4 @@ module_exit(rpfan_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("notforest <sshkliaiev@gmail.com>");
 MODULE_DESCRIPTION("Driver for optimizing raspberry pi's fan and configurating it from the user space.");
-MODULE_VERSION("0.4.pre-beta");
+MODULE_VERSION("0.5.0.beta");
