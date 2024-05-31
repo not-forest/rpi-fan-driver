@@ -11,9 +11,9 @@ This kernel module is in the early stages of development and is designed to opti
 - [x] Fan device-tree overlay.
 - [x] Control fan speed using PWM.
 - [x] Multiple static PWM modes.
-- [ ] Adaptive PWM mode.
 - [ ] IOCTL support.
 - [ ] Automatic overlay application.
+- [ ] RESERVED. Adaptive PWM mode (Handled by software).
 
 ## Tested on
 
@@ -89,7 +89,7 @@ cat bcmXXXX-my_custom_overlay.dtbo > /sys/.../overlays/<anything>/dtbo
 Upon loading the Raspberry Pi Fan Driver using `insmod` and making sure the device-tree overlay is properly applied, it automatically selects the first available GPIO pin for fan control. However, you can change the GPIO pin by writing the desired pin number to the device file `/dev/rpifan`. For example:
 
 ```bash
-echo "18" > /dev/rpifan  # (000|10010) Set GPIO pin to 18 with adaptive PWM.
+echo "18" > /dev/rpifan  # (000|10010) WARN!! PWM_MODE_0 is reserved.
 echo "237" > /dev/rpifan  # (111|01101) Set GPIO pin to 13 with PWM mode 7 (NO PWM).
 echo "44" > /dev/rpifan  # (001|01100) Set GPIO pin to 12 with PWM mode 1 (Somewhere around 10%).
 ```
@@ -98,7 +98,7 @@ Driver will request a `pwm-bcm2835` kernel module, which will allow it for obtai
 
 The value must be a `u8` written in decimal format. The first 5 bits of which, represent the address of the available pin, while the remaining 3 bits indicate the PWM mode. 
 
-- The PWM mode `0b000` corresponds to an adaptive PWM mode, which dynamically adjusts the PWM value based on the CPU load.
+- The PWM mode `0b000` corresponds to an adaptive PWM mode, which dynamically adjusts the PWM value based on the CPU load. This mode is reserved for future use from a user level application.
 - Conversely, `0b111` signifies PWM_OFF.
 - Values in between represent static PWM signal duty cycle values calculated in percentages.
 
@@ -112,7 +112,7 @@ Here is a more detailed structure of the expected value:
 |              |            | Rest are considered out-of-range                                                              |
 |--------------|------------|-----------------------------------------------------------------------------------------------|
 | 7 - 5        | PWM Mode   | Represents the PWM mode for fan control.                                                      |
-|              |            | `0b000`: Adaptive PWM mode (Dynamically adjusts based on CPU load)                            |
+|              |            | `0b000`: RESERVED! Adaptive PWM mode (Dynamically adjusts based on CPU load)                            |
 |              |            | `0b111`: PWM_OFF (no PWM just static 3.3V)                                                    |
 |              |            | Values `0b001` to `0b110`: Static PWM values calculated in percentages.                       |
 
