@@ -22,26 +22,26 @@ int set_gpio(union fan_config *config, uint8_t old_gpio) {
             pr_warn("%s: WARN: GPIO_%d is reserved for advanced use and is not recomended to use (ID_EEPROM) pins.\n", 
                     THIS_MODULE->name, new_gpio);
         case PWM_GPIOS:
-            if(set_fan_pwm(config) == 0) break;
+            if(set_fan_pwm(config) == 0) goto _gpio; else break;
         default:
             pr_warn("%s: WARN: GPIO_%d is not a PWM pin. PWM configuration will be ignored.\n", 
                 THIS_MODULE->name, new_gpio);
 
-            // Changing the current GPIO state
-            if(old_gpio != new_gpio) { 
-                if(gpio_request(new_gpio, GPIO_NAME) < 0) {
-                    pr_err("%s: ERROR: GPIO_%d request failed.\n", THIS_MODULE->name, new_gpio);
-                    return -EACCES;
-                }
-
-                gpio_set_value_cansleep(old_gpio, LOW);
-                gpio_free(old_gpio);
-
-                gpio_direction_output(new_gpio, OUT);
-                gpio_set_value(new_gpio, HIGH);
-            }
     }
+    // Changing the current GPIO state
+    if(old_gpio != new_gpio) { 
+        if(gpio_request(new_gpio, GPIO_NAME) < 0) {
+            pr_err("%s: ERROR: GPIO_%d request failed.\n", THIS_MODULE->name, new_gpio);
+            return -EACCES;
+        }
 
+        gpio_set_value_cansleep(old_gpio, LOW);
+        gpio_free(old_gpio);
+
+        gpio_direction_output(new_gpio, OUT);
+        gpio_set_value(new_gpio, HIGH);
+    }
+_gpio:
     pr_info("%s: New configuration is provided: GPIO_%d, PWM_MODE_%d\n", 
             THIS_MODULE->name, new_gpio, config->pwm_mode);
 
