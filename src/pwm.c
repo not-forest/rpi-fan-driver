@@ -16,7 +16,7 @@
 #include<linux/property.h>
 #include<linux/of_device.h>
 #include<linux/pwm.h>
-
+#include<linux/thermal.h>
 
 #include "rpi.h"
 
@@ -43,6 +43,7 @@ static struct pwm_state pwm_s = {
     .polarity = PWM_POLARITY_NORMAL,
     .enabled = true,
 };
+
 
 #ifndef LEGACY
 // Obtained pointer to the PWM device (One or two channels).
@@ -101,6 +102,7 @@ static struct platform_driver rpi_platform_driver = {
         .of_match_table = rpifan_ids,
     },
 };
+
 /****************************************************/
 
 MODULE_DEVICE_TABLE(of, rpifan_ids);
@@ -122,7 +124,8 @@ static int rpi_fan_pwm_probe(struct platform_device *pdev) {
         pr_err("%s: Device label does not match.", PLATFORM_DRIVER_NAME);
         return -ENODEV;
     }
-    
+   
+    // Obtaining the defined PWM channels.
     FOR_EACH_CHANNEL(i,
         pwms[i] = pwm_get(dev, labels[i]);
 
@@ -136,6 +139,7 @@ static int rpi_fan_pwm_probe(struct platform_device *pdev) {
 
         pwm_apply_state(pwms[i], &pwm_s);
     );
+
     return 0;
 }
 
@@ -163,16 +167,16 @@ int set_fan_pwm(union fan_config *config) {
                 return err;
             }
 
-            // Check for an adaptive PWM configuration.
-            if(config->gpio_num == PWM_ADP) {
-                goto _pwms_ok;
+            // Adaptive PWM is reserved.
+            if(config->pwm_mode == PWM_ADP) {
+                pr_err("%s: Reserved value is used. PWM_MODE_%d is reserved.", THIS_MODULE->name, config->pwm_mode);               
+                return -EINVAL;
             }
 
             pwm_s.duty_cycle = (PWM_PERIOD / PWM_OFF) * config->pwm_mode;
             pwm_apply_state(pwms[i], &pwm_s);
         }
     );
-_pwms_ok:
     pr_info("%s: PWM configuration changed successfully.", THIS_MODULE->name);
     return 0;
 }
@@ -182,7 +186,7 @@ int init_fan_pwm(void) {
     // We require the pwm driver to be available for obtaining the PWM channels.
     if(request_module("pwm-bcm2835")) {
         pr_err("%s: ERROR: Unable to request the PWM driver. Please check that \"pwm-bcm2835\" driver exists.", THIS_MODULE->name);
-        return -ENXIO;
+        return -ENODEV;
     }
 #ifndef LEGACY
     if(platform_driver_register(&rpi_platform_driver)) {
