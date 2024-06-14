@@ -20,8 +20,6 @@
 
 #include "rpi.h"
 
-#define PWM_PERIOD 50000000
-
 // Legacy function for obtaining PWM via their index.
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
 #define LEGACY  // Using legacy 'pwm_request' for older kernels.
@@ -35,15 +33,6 @@
 #define _COUNT_PWMS(...) COUNT_ARGS(__VA_ARGS__)
 #define PWM_CHANNELS_AMOUNT _COUNT_PWMS(PWM_PINS)
 #define __GET_PWM_VAL(i, ...) ((int[]) {__VA_ARGS__})[i]
-
-/**************** Driver data fields ****************/
-static struct pwm_state pwm_s = {
-    .period = PWM_PERIOD,
-    .duty_cycle = PWM_PERIOD,
-    .polarity = PWM_POLARITY_NORMAL,
-    .enabled = true,
-};
-
 
 #ifndef LEGACY
 // Obtained pointer to the PWM device (One or two channels).
@@ -167,10 +156,10 @@ int set_fan_pwm(union fan_config *config) {
                 return err;
             }
 
-            // Adaptive PWM is reserved.
+            // Adaptive PWM is reserved for IOCTL use.
             if(config->pwm_mode == PWM_ADP) {
-                pr_err("%s: Reserved value is used. PWM_MODE_%d is reserved.", THIS_MODULE->name, config->pwm_mode);               
-                return -EINVAL;
+                pwm_apply_state(pwms[i], &pwm_s);
+                return 0;
             }
 
             pwm_s.duty_cycle = (PWM_PERIOD / PWM_OFF) * config->pwm_mode;
