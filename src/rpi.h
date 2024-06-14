@@ -7,6 +7,7 @@
 
 #include<linux/kernel.h>
 #include<linux/fs.h>
+#include<linux/pwm.h>
 
 #define OUT 0
 #define LOW 0
@@ -32,6 +33,15 @@
 #define CLASS_NAME "fan"
 #define GPIO_NAME "FAN_GPIO"
 #define KBUF_SIZE 4
+
+
+// IOCTL command call for controlling the PWM state completely from user space.
+#define WR_PWM_VALUE _IOW('r', 0, struct pwm_state*)
+// IOCTL command call for reading the current state of the PWM.
+#define R_PWM_VALUE _IOR('r', 1, struct pwm_state*)
+// Starting period value.
+#define PWM_PERIOD 50000000
+
 /**********************************/
 
 /* 
@@ -49,6 +59,15 @@ union fan_config {
     };
 };
 
+/**************** Driver data fields ****************/
+// Static PWM state function with default parameters.
+static struct pwm_state pwm_s = {
+    .period = PWM_PERIOD,
+    .duty_cycle = PWM_PERIOD,
+    .polarity = PWM_POLARITY_NORMAL,
+    .enabled = true,
+};
+
 /***************** Driver functions *****************/
 static int __init rpfan_driver_init(void);
 static void __exit rpfan_driver_exit(void);
@@ -57,6 +76,7 @@ static int rpfan_open(struct inode *inode, struct file *file);
 static int rpfan_release(struct inode *inode, struct file *file);
 static ssize_t rpfan_read(struct file *file, char __user *buf, size_t len, loff_t *off);
 static ssize_t rpfan_write(struct file *file, const char *buf, size_t len, loff_t *off);
+static long rpfan_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 /* Sets the new GPIO while parsing values and returning obtained errors */
 int set_gpio(union fan_config *config, uint8_t old_gpio);
