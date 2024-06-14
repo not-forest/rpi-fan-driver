@@ -10,6 +10,8 @@
 #include<linux/kdev_t.h>
 #include<linux/cdev.h>
 #include<linux/module.h>
+#include<linux/ioctl.h>
+#include<linux/pwm.h>
 
 #include<linux/fs.h>
 #include<linux/gpio.h>
@@ -28,10 +30,36 @@ static struct file_operations fops = {
     .write          = rpfan_write,
     .open           = rpfan_open,
     .release        = rpfan_release,
+    .unlocked_ioctl = rpfan_ioctl,
 };
 
 dev_t dev = 0;
 /****************************************************/
+
+/* IOCTL handling. */
+static long rpfan_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
+    switch (cmd) {
+        case WR_PWM_VALUE:
+            if(copy_from_user(&pwm_s, (struct pwm_state *) arg, sizeof(pwm_s))) {
+                pr_err("%s: An error occured while trying to write new PWM state.", THIS_MODULE->name);
+                return -EFAULT;
+            }
+            pr_info("%s: New PWM state configuration provided manually via IOCTL call.", THIS_MODULE->name);
+            config.pwm_mode = PWM_ADP;
+            set_fan_pwm(&config); 
+            break;
+        case R_PWM_VALUE:
+            if(copy_to_user((struct pwm_state *) arg, &pwm_s, sizeof(pwm_s))) {
+                pr_err("%s: An error occured while trying to read current PWM state.", THIS_MODULE->name);
+                return -EFAULT;
+            }
+            break;
+        default:
+            pr_err("%s: Unknown IOCTL command.", THIS_MODULE->name);
+            return -EINVAL;
+    }
+    return 0;
+}
 
 /* Character device open. */
 static int rpfan_open(struct inode *inode, struct file *file) {
@@ -155,4 +183,4 @@ module_exit(rpfan_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("notforest <sshkliaiev@gmail.com>");
 MODULE_DESCRIPTION("Driver for optimizing raspberry pi's fan and configurating it from the user space.");
-MODULE_VERSION("0.5.0.beta");
+MODULE_VERSION("0.6.0.beta");
