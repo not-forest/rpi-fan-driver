@@ -22,7 +22,7 @@ int set_gpio(union fan_config *config, uint8_t old_gpio) {
             pr_warn("%s: WARN: GPIO_%d is reserved for advanced use and is not recomended to use (ID_EEPROM) pins.\n", 
                     THIS_MODULE->name, new_gpio);
         case PWM_GPIOS:
-            if(set_fan_pwm(config) == 0) goto _gpio; else break;
+            if(set_fan_pwm(config, 0) == 0) goto _gpio; else break;
         default:
             pr_warn("%s: WARN: GPIO_%d is not a PWM pin. PWM configuration will be ignored.\n", 
                 THIS_MODULE->name, new_gpio);

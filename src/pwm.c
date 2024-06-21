@@ -126,7 +126,7 @@ static int rpi_fan_pwm_probe(struct platform_device *pdev) {
             return err;
         }
 
-        pwm_apply_state(pwms[i], &pwm_s);
+        pwm_apply_state(pwms[i], pwm_s);
     );
 
     return 0;
@@ -141,7 +141,7 @@ static int rpi_fan_pwm_remove(struct platform_device *pdev) {
 #endif
 
 /* Sets a new PWM to a certain GPIO based on the fan configuration */
-int set_fan_pwm(union fan_config *config) {
+int set_fan_pwm(union fan_config *config, u64 extra) {
     FOR_EACH_CHANNEL(i, 
         if(config->gpio_num == __GET_PWM_VAL(i, PWM_PINS)) {
             // The PWM was not initialized. Maybe the pwm-bcm2835 is not probed.
@@ -158,12 +158,13 @@ int set_fan_pwm(union fan_config *config) {
 
             // Adaptive PWM is reserved for IOCTL use.
             if(config->pwm_mode == PWM_ADP) {
-                pwm_apply_state(pwms[i], &pwm_s);
-                return 0;
+                pr_info("WHY %ld", pwm_s->duty_cycle);
+                pwm_s->duty_cycle = extra;
+                pwm_apply_state(pwms[i], pwm_s);
+            } else {
+                pwm_s->duty_cycle = (PWM_PERIOD / PWM_OFF) * config->pwm_mode;
+                pwm_apply_state(pwms[i], pwm_s);
             }
-
-            pwm_s.duty_cycle = (PWM_PERIOD / PWM_OFF) * config->pwm_mode;
-            pwm_apply_state(pwms[i], &pwm_s);
         }
     );
     pr_info("%s: PWM configuration changed successfully.", THIS_MODULE->name);
@@ -191,7 +192,7 @@ int init_fan_pwm(void) {
             return -EIO; 
         }
 
-        pwm_apply_state(pwms[i], &pwm_s);
+        pwm_apply_state(pwms[i], pwm_s);
     );
 #endif    
 

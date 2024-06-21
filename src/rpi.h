@@ -36,9 +36,9 @@
 
 
 // IOCTL command call for controlling the PWM state completely from user space.
-#define WR_PWM_VALUE _IOW('r', 0, struct pwm_state*)
+#define WR_PWM_VALUE _IOW('r', 'a', u64*)
 // IOCTL command call for reading the current state of the PWM.
-#define R_PWM_VALUE _IOR('r', 1, struct pwm_state*)
+#define R_PWM_VALUE _IOR('r', 'b', u64*)
 // Starting period value.
 #define PWM_PERIOD 50000000
 
@@ -61,12 +61,15 @@ union fan_config {
 
 /**************** Driver data fields ****************/
 // Static PWM state function with default parameters.
-static struct pwm_state pwm_s = {
+static struct pwm_state pwm_state = {
     .period = PWM_PERIOD,
     .duty_cycle = PWM_PERIOD,
     .polarity = PWM_POLARITY_NORMAL,
     .enabled = true,
 };
+
+// Pointer to prevent bugs in IOCTL call.
+static struct pwm_state *pwm_s = &pwm_state;
 
 /***************** Driver functions *****************/
 static int __init rpfan_driver_init(void);
@@ -84,7 +87,7 @@ int set_gpio(union fan_config *config, uint8_t old_gpio);
 int init_gpio(union fan_config *config);
 
 /* Sets a new PWM to a certain GPIO based on the fan configuration */
-int set_fan_pwm(union fan_config *config);
+int set_fan_pwm(union fan_config *config, u64 extra);
 /* Initializes the PWM lookup table */
 int init_fan_pwm(void);
 /* Frees the PWM device. */

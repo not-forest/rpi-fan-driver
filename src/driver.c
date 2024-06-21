@@ -40,16 +40,16 @@ dev_t dev = 0;
 static long rpfan_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
     switch (cmd) {
         case WR_PWM_VALUE:
-            if(copy_from_user(&pwm_s, (struct pwm_state *) arg, sizeof(pwm_s))) {
+            if(copy_from_user(&pwm_s->duty_cycle, (u64*) arg, sizeof(u64))) {
                 pr_err("%s: An error occured while trying to write new PWM state.", THIS_MODULE->name);
                 return -EFAULT;
             }
-            pr_info("%s: New PWM state configuration provided manually via IOCTL call.", THIS_MODULE->name);
+            pr_debug("%s: New PWM state configuration provided manually via IOCTL call.\n", THIS_MODULE->name);
             config.pwm_mode = PWM_ADP;
-            set_fan_pwm(&config); 
+            set_fan_pwm(&config, pwm_s->duty_cycle); 
             break;
         case R_PWM_VALUE:
-            if(copy_to_user((struct pwm_state *) arg, &pwm_s, sizeof(pwm_s))) {
+            if(copy_to_user((long*) arg, &pwm_s->duty_cycle, sizeof(u64))) {
                 pr_err("%s: An error occured while trying to read current PWM state.", THIS_MODULE->name);
                 return -EFAULT;
             }
@@ -58,6 +58,7 @@ static long rpfan_ioctl(struct file *file, unsigned int cmd, unsigned long arg) 
             pr_err("%s: Unknown IOCTL command.", THIS_MODULE->name);
             return -EINVAL;
     }
+
     return 0;
 }
 
