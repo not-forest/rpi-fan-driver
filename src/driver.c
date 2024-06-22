@@ -184,4 +184,4 @@ module_exit(rpfan_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("notforest <sshkliaiev@gmail.com>");
 MODULE_DESCRIPTION("Driver for optimizing raspberry pi's fan and configurating it from the user space.");
-MODULE_VERSION("0.6.0.beta");
+MODULE_VERSION("0.7.0.beta");

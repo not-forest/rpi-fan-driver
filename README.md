@@ -1,5 +1,5 @@
 # Raspberry Pi Fan Driver
-## VERSION: "0.6.0.beta"
+## VERSION: "0.7.0.beta"
 
 This kernel module is in the early stages of development and is designed to optimize and control the fan speed of Raspberry Pi machines through user-configurable settings. It allows for dynamic GPIO pin assignment based on user input via a character device interface, as well as selection of the PWM mode.
 
@@ -13,7 +13,7 @@ This kernel module is in the early stages of development and is designed to opti
 - [x] Multiple static PWM modes.
 - [x] IOCTL support.
 - [ ] Automatic overlay application.
-- [ ] RESERVED. Adaptive PWM mode (Handled by software).
+- [x] RESERVED. Adaptive PWM mode (Handled by software).
 
 ## Tested on
 
@@ -80,7 +80,7 @@ The example device trees are not dependent on any additional commands, which are
 ```bash
 mount -t configfs zero /sys/kernel/config/
 mkdir /sys/kernel/config/device-tree/overlays/<anything>/
-cat bcmXXXX-my_custom_overlay.dtbo > /sys/.../overlays/<anything>/dtbo
+cat bcm2835-my_custom_overlay.dtbo > /sys/.../overlays/<anything>/dtbo
 # Ignore the dmesg output on this.
 
 ```
@@ -94,7 +94,7 @@ echo "237" > /dev/rpifan  # (111|01101) Set GPIO pin to 13 with PWM mode 7 (NO P
 echo "44" > /dev/rpifan  # (001|01100) Set GPIO pin to 12 with PWM mode 1 (Somewhere around 10%).
 ```
 
-Driver will request a `pwm-bcm2835` kernel module, which will allow it for obtaining one or two PWM channels. Based on the compiled device-tree overlay the GPIO pins on which PWM will appear may vary.
+Driver will request a `pwm-bcm2835` kernel module, which will allow it for obtaining one or two PWM channels. Based on the compiled device-tree overlay the GPIO pins on which PWM will appear may vary. The adaptive PWM and custom PWM values can be adjusted via `rpi_fan_util` utility.
 
 The value must be a `u8` written in decimal format. The first 5 bits of which, represent the address of the available pin, while the remaining 3 bits indicate the PWM mode. 
 
