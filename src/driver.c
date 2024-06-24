@@ -11,10 +11,8 @@
 #include<linux/cdev.h>
 #include<linux/module.h>
 #include<linux/ioctl.h>
-#include<linux/pwm.h>
 
 #include<linux/fs.h>
-#include<linux/gpio.h>
 #include<linux/kdev_t.h>
 #include<linux/init.h>
 
@@ -101,7 +99,7 @@ static ssize_t rpfan_write(struct file *file, const char *buf, size_t len, loff_
    
     // Converting to u8.
     if(kstrtou8_from_user(buf, len, 10, &config.bytes)) {
-        pr_err("%s: ERROR: Unconvertable u8 value: %s", THIS_MODULE->name, buf);
+        pr_err("%s: ERROR: Unconvertable u8 value: %s\n", THIS_MODULE->name, buf);
         return -EINVAL;
     }
 
@@ -167,8 +165,7 @@ _unreg:
 
 /* Freeing the last used pin */
 static void __exit rpfan_driver_exit(void) {
-    gpio_set_value_cansleep(config.gpio_num, LOW);
-    gpio_free(config.gpio_num);
+    free_cgpio(&config);
     free_fan_pwm();
 
     device_destroy(dev_class, dev);
@@ -184,4 +181,4 @@ module_exit(rpfan_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("notforest <sshkliaiev@gmail.com>");
 MODULE_DESCRIPTION("Driver for optimizing raspberry pi's fan and configurating it from the user space.");
-MODULE_VERSION("0.7.0.beta");
+MODULE_VERSION("0.8.0.beta");
