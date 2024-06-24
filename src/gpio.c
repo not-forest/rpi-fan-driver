@@ -10,6 +10,22 @@
 #include<linux/gpio.h>
 #include"rpi.h"
 
+#define OUT 0
+#define LOW 0
+#define HIGH 1
+
+// All raspberry pi GPIO pins, that can be used as a PWM.
+#define PWM_GPIOS 12:case 13:case 18:case 19
+// Physical pins (27, 28) are reserved for advanced use.
+#define RESERVED 0 ... 1
+#define OOR GPIO_AMOUNT ... 255
+
+// First GPIO pin
+#define GPIO_MIN 2
+// Amount of available GPIO pins.
+#define GPIO_AMOUNT 28 
+#define GPIO_NAME "FAN_GPIO"
+
 /* sets the new GPIO while parsing values and returning obtained errors */
 int set_gpio(union fan_config *config, uint8_t old_gpio) {
     uint8_t new_gpio = config->gpio_num;
@@ -17,7 +33,7 @@ int set_gpio(union fan_config *config, uint8_t old_gpio) {
     switch (new_gpio) {
         case OOR:
             pr_err("%s: ERROR: GPIO_%d is not a proper pin, ignoring...\n", THIS_MODULE->name, new_gpio);
-            return -EFAULT;
+            return -EINVAL;
         case RESERVED:
             pr_warn("%s: WARN: GPIO_%d is reserved for advanced use and is not recomended to use (ID_EEPROM) pins.\n", 
                     THIS_MODULE->name, new_gpio);
@@ -35,7 +51,7 @@ int set_gpio(union fan_config *config, uint8_t old_gpio) {
             return -EACCES;
         }
 
-        gpio_set_value_cansleep(old_gpio, LOW);
+        gpio_set_value(old_gpio, LOW);
         gpio_free(old_gpio);
 
         gpio_direction_output(new_gpio, OUT);
@@ -74,4 +90,10 @@ int init_gpio(union fan_config *config) {
     config->gpio_num = gpio;
 
     return 0;
+}
+
+/* Frees the current GPIO */
+void free_cgpio(union fan_config *config) {
+    gpio_set_value(config->gpio_num, LOW);
+    gpio_free(config->gpio_num);
 }
