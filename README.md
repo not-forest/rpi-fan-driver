@@ -1,5 +1,5 @@
 # Raspberry Pi Fan Driver
-## VERSION: "0.7.0.beta"
+## VERSION: "0.8.0.beta"
 
 This kernel module is in the early stages of development and is designed to optimize and control the fan speed of Raspberry Pi machines through user-configurable settings. It allows for dynamic GPIO pin assignment based on user input via a character device interface, as well as selection of the PWM mode.
 
