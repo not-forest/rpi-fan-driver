@@ -9,21 +9,6 @@
 #include<linux/fs.h>
 #include<linux/pwm.h>
 
-#define OUT 0
-#define LOW 0
-#define HIGH 1
-
-// All raspberry pi GPIO pins, that can be used as a PWM.
-#define PWM_GPIOS 12:case 13:case 18:case 19
-// Physical pins (27, 28) are reserved for advanced use.
-#define RESERVED 0 ... 1
-#define OOR GPIO_AMOUNT ... 255
-
-// First GPIO pin
-#define GPIO_MIN 2
-// Amount of available GPIO pins.
-#define GPIO_AMOUNT 28 
-
 // Default PWM option
 #define PWM_OFF 0b111
 // Adaptive PWM. The value is defined based on the CPU load. 
@@ -31,7 +16,6 @@
 
 #define DEVICE_NAME "rpifan"
 #define CLASS_NAME "fan"
-#define GPIO_NAME "FAN_GPIO"
 #define KBUF_SIZE 4
 
 
@@ -85,6 +69,8 @@ static long rpfan_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 int set_gpio(union fan_config *config, uint8_t old_gpio);
 /* Initializes the first available GPIO in the system. */
 int init_gpio(union fan_config *config);
+/* Frees the current GPIO */
+void free_cgpio(union fan_config *);
 
 /* Sets a new PWM to a certain GPIO based on the fan configuration */
 int set_fan_pwm(union fan_config *config, u64 extra);
